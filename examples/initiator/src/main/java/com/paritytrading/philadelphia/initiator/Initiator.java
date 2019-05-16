@@ -19,14 +19,17 @@ import com.paritytrading.philadelphia.FIXConfig;
 import com.paritytrading.philadelphia.FIXConnection;
 import com.paritytrading.philadelphia.FIXConnectionStatusListener;
 import com.paritytrading.philadelphia.FIXMessage;
+import com.paritytrading.philadelphia.FIXValue;
+import static com.paritytrading.philadelphia.fix42.FIX42Tags.ClOrdID;
 import com.paritytrading.philadelphia.FIXMessageListener;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
 import org.HdrHistogram.Histogram;
 
-class Initiator implements FIXMessageListener {
+class Initiator implements FIXMessageListener, Closeable {
 
     private static final FIXConfig CONFIG = new FIXConfig.Builder()
         .setSenderCompID("initiator")
@@ -37,9 +40,9 @@ class Initiator implements FIXMessageListener {
 
     private final Histogram histogram;
 
-    private long sentAtNanoTime;
+    private long intervalNanos;
 
-    private boolean received;
+    private int receiveCount;
 
     private Initiator(SocketChannel channel) {
         connection = new FIXConnection(channel, CONFIG, this, new FIXConnectionStatusListener() {
@@ -92,9 +95,15 @@ class Initiator implements FIXMessageListener {
 
     @Override
     public void message(FIXMessage message) {
-        histogram.recordValue(System.nanoTime() - sentAtNanoTime);
+        FIXValue clOrdId = message.valueOf(ClOrdID);
+        histogram.recordValue(System.nanoTime() - clOrdId.asInt() * intervalNanos);
 
-        received = true;
+        receiveCount++;
+    }
+
+    @Override
+    public void close() throws IOException {
+        connection.close();
     }
 
     Histogram getHistogram() {
@@ -105,22 +114,28 @@ class Initiator implements FIXMessageListener {
         return connection;
     }
 
-    void send(FIXMessage message) throws IOException {
-        sentAtNanoTime = System.nanoTime();
+    void reset() {
+        histogram.reset();
 
-        connection.update(message);
-        connection.send(message);
-
-        received = false;
+        receiveCount = 0;
     }
 
-    void receive() throws IOException {
-        while (!received) {
-            if (connection.receive() < 0)
-                return;
-        }
+    void setIntervalNanos(long i) {
+        intervalNanos = i;
+    }
 
-        received = false;
+    void sendAndReceive(long nextClOrdId, FIXMessage message, int orders) throws IOException {
+        for (long sentAtNanoTime = System.nanoTime(); receiveCount < orders; connection.receive()) {
+            if (System.nanoTime() >= sentAtNanoTime) {
+                FIXValue clOrdId = message.valueOf(ClOrdID);
+                clOrdId.setInt(nextClOrdId++);
+
+                connection.update(message);
+                connection.send(message);
+
+                sentAtNanoTime += intervalNanos;
+            }
+        }
     }
 
 }
