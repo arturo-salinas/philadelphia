@@ -1,2 +1,6 @@
 *.jar
+.project
+.classpath
+*.prefs
+.factorypath
 target/
