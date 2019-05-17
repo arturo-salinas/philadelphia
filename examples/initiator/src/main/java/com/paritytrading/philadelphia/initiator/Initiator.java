@@ -96,7 +96,7 @@ class Initiator implements FIXMessageListener, Closeable {
     @Override
     public void message(FIXMessage message) {
         FIXValue clOrdId = message.valueOf(ClOrdID);
-        histogram.recordValue(System.nanoTime() - clOrdId.asInt() * intervalNanos);
+        histogram.recordValue(System.nanoTime() - clOrdId.asInt());
 
         receiveCount++;
     }
@@ -124,11 +124,11 @@ class Initiator implements FIXMessageListener, Closeable {
         intervalNanos = i;
     }
 
-    void sendAndReceive(long nextClOrdId, FIXMessage message, int orders) throws IOException {
+    void sendAndReceive(FIXMessage message, int orders) throws IOException {
         for (long sentAtNanoTime = System.nanoTime(); receiveCount < orders; connection.receive()) {
             if (System.nanoTime() >= sentAtNanoTime) {
                 FIXValue clOrdId = message.valueOf(ClOrdID);
-                clOrdId.setInt(nextClOrdId++);
+                clOrdId.setInt(sentAtNanoTime);
 
                 connection.update(message);
                 connection.send(message);

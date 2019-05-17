@@ -51,14 +51,11 @@ class TestInitiator {
         try (final Initiator initiator = Initiator.open(address)) {
             initiator.setIntervalNanos(1_000_000_000 / ordersPerSecond);
 
-            long nextClOrdId = 1;
-
             FIXMessage message = initiator.getTransport().create();
 
             initiator.getTransport().prepare(message, OrderSingle);
 
-            FIXValue clOrdId = message.addField(ClOrdID);
-
+            message.addField(ClOrdID);
             message.addField(HandlInst).setChar(HandlInstValues.AutomatedExecutionNoIntervention);
             message.addField(Symbol).setString("FOO");
             message.addField(Side).setChar(SideValues.Buy);
@@ -72,13 +69,13 @@ class TestInitiator {
 
             System.out.println("Warming up...");
 
-            initiator.sendAndReceive(nextClOrdId, message, orders);
+            initiator.sendAndReceive(message, orders);
 
             initiator.reset();
 
             System.out.println("Benchmarking...");
 
-            initiator.sendAndReceive(nextClOrdId, message, orders);
+            initiator.sendAndReceive(message, orders);
 
             initiator.getTransport().close();
 
