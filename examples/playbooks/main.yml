@@ -1,0 +1,23 @@
+---
+- hosts: ec2-54-89-93-147.compute-1.amazonaws.com
+  become: yes
+  tasks: 
+  - name: Install add-apt-repostory
+    become: yes
+    apt: name=software-properties-common state=latest
+
+  - name: Add Oracle Java Repository
+    become: yes
+    apt_repository: repo='ppa:linuxuprising/java'
+
+  - name: Accept Java 11 License
+    become: yes
+    debconf: name='oracle-java11-installer' question='shared/accepted-oracle-license-v1-2' value='true' vtype='select'
+
+  - name: Install Oracle Java 11
+    become: yes
+    apt: name=oracle-java11-installer state=latest
+
+  - name: Set Default Oracle Java 11
+    become: yes
+    apt: name=oracle-java11-set-default
