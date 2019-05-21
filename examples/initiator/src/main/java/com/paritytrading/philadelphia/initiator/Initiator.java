@@ -15,12 +15,13 @@
  */
 package com.paritytrading.philadelphia.initiator;
 
+import static com.paritytrading.philadelphia.fix42.FIX42Tags.*;
+
 import com.paritytrading.philadelphia.FIXConfig;
 import com.paritytrading.philadelphia.FIXConnection;
 import com.paritytrading.philadelphia.FIXConnectionStatusListener;
 import com.paritytrading.philadelphia.FIXMessage;
 import com.paritytrading.philadelphia.FIXValue;
-import static com.paritytrading.philadelphia.fix42.FIX42Tags.ClOrdID;
 import com.paritytrading.philadelphia.FIXMessageListener;
 import java.io.Closeable;
 import java.io.IOException;
@@ -124,10 +125,9 @@ class Initiator implements FIXMessageListener, Closeable {
         intervalNanos = i;
     }
 
-    void sendAndReceive(FIXMessage message, int orders) throws IOException {
+    void sendAndReceive(FIXMessage message, FIXValue clOrdId, int orders) throws IOException {
         for (long sentAtNanoTime = System.nanoTime(); receiveCount < orders; connection.receive()) {
             if (System.nanoTime() >= sentAtNanoTime) {
-                FIXValue clOrdId = message.valueOf(ClOrdID);
                 clOrdId.setInt(sentAtNanoTime);
 
                 connection.update(message);

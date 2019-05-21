@@ -55,7 +55,8 @@ class TestInitiator {
 
             initiator.getTransport().prepare(message, OrderSingle);
 
-            message.addField(ClOrdID);
+            FIXValue clOrdId = message.addField(ClOrdID);
+
             message.addField(HandlInst).setChar(HandlInstValues.AutomatedExecutionNoIntervention);
             message.addField(Symbol).setString("FOO");
             message.addField(Side).setChar(SideValues.Buy);
@@ -69,13 +70,13 @@ class TestInitiator {
 
             System.out.println("Warming up...");
 
-            initiator.sendAndReceive(message, orders);
+            initiator.sendAndReceive(message, clOrdId, orders);
 
             initiator.reset();
 
             System.out.println("Benchmarking...");
 
-            initiator.sendAndReceive(message, orders);
+            initiator.sendAndReceive(message, clOrdId, orders);
 
             initiator.getTransport().close();
 
