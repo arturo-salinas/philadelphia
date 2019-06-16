@@ -398,9 +398,9 @@ public class FIXValue {
      */
     public void setTimeOnly(ReadableDateTime t, boolean millis) {
         setDigits(t.getHourOfDay(), 0, 2);
-        bytes.put((byte)':');
+        bytes.put(2, (byte)':');
         setDigits(t.getMinuteOfHour(), 3, 2);
-        bytes.put((byte)':');
+        bytes.put(5, (byte)':');
         setDigits(t.getSecondOfMinute(), 6, 2);
 
         if (millis) {
@@ -421,17 +421,23 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a timestamp
      */
     public void asTimestamp(MutableDateTime t) {
-        if (bytes.limit() != 17 &&bytes.limit() != 21)
+        if (bytes.limit() != 17 && bytes.limit() != 21)
             notTimestamp();
 
         int year           = getDigits(4);
         int monthOfYear    = getDigits(2);
         int dayOfMonth     = getDigits(2);
+        bytes.position(bytes.position() + 1);
         int hourOfDay      = getDigits(2);
+        bytes.position(bytes.position() + 1);
         int minuteOfHour   = getDigits(2);
+        bytes.position(bytes.position() + 1);
         int secondOfMinute = getDigits(2);
-        int millisOfSecond = bytes.limit() == 21 ? getDigits(3) : 0;
-
+        int millisOfSecond = 0;
+        if (bytes.limit() == 21) {
+            bytes.position(bytes.position() + 1);
+            millisOfSecond = getDigits(3);
+        }
         t.setDateTime(year, monthOfYear, dayOfMonth, hourOfDay, minuteOfHour,
                 secondOfMinute, millisOfSecond);
     }
@@ -446,23 +452,23 @@ public class FIXValue {
         setDigits(t.getYear(), 0, 4);
         setDigits(t.getMonthOfYear(), 4, 2);
         setDigits(t.getDayOfMonth(), 6, 2);
-        bytes.put((byte)'-');
+        bytes.put(8, (byte)'-');
         setDigits(t.getHourOfDay(), 9, 2);
-        bytes.put((byte)':');
-        setDigits(t.getMinuteOfHour(), 2);
-        bytes.put((byte)':');
-        setDigits(t.getSecondOfMinute(), 2);
+        bytes.put(11, (byte)':');
+        setDigits(t.getMinuteOfHour(), 12, 2);
+        bytes.put(14, (byte)':');
+        setDigits(t.getSecondOfMinute(), 15, 2);
 
         if (millis) {
-            bytes.put((byte)'.');
-            setDigits(t.getMillisOfSecond(), 3);
-            bytes.put(SOH);
+            bytes.put(17, (byte)'.');
+            setDigits(t.getMillisOfSecond(), 18, 3);
+            bytes.put(21, SOH);
 
-            bytes.flip();
+            bytes.position(22).flip().mark();
         } else {
-            bytes.put(SOH);
+            bytes.put(17, SOH);
 
-            bytes.flip();
+            bytes.position(18).flip().mark();
         }
 
     }
@@ -485,10 +491,10 @@ public class FIXValue {
      */
     public void setCheckSum(long c) {
         System.out.println("setCheckSum");
-        setDigits(c & 0xff, 3);
-        bytes.put(SOH);
+        setDigits(c & 0xff, 0, 3);
+        bytes.put(3, SOH);
 
-        bytes.flip();
+        bytes.position(4).flip().mark();
     }
 
     /**
