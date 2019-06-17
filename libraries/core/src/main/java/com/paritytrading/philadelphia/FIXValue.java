@@ -313,8 +313,9 @@ public class FIXValue {
      * @param s a string builder
      */
     public void asString(StringBuilder s) {
+        System.out.println("asSting " + bytes.toString());
         bytes.reset();
-        for (int i = 0; i < bytes.limit() - 1; i++)
+        for (int i = bytes.position(); i < bytes.limit() - 1; i++) 
             s.append((char)bytes.get());
     }
 
@@ -540,9 +541,6 @@ public class FIXValue {
         System.out.println("put");
         ByteBuffer r = bytes.reset().slice();
         System.out.println("r is " + r.toString());
-        System.out.println((char)bytes.get(0));
-        System.out.println((char)bytes.get(1));
-        System.out.println((char)bytes.get(2));
         buffer.put(r);
         System.out.println(buffer.toString());
         bytes.rewind();
