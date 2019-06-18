@@ -37,7 +37,6 @@ public class FIXValue {
      * @param capacity the capacity
      */
     public FIXValue(int capacity) {
-        System.out.println("FIXValue capacity = " + capacity);
         bytes = ByteBuffer.allocateDirect(capacity);
 
         bytes.put(0, SOH);
@@ -75,17 +74,9 @@ public class FIXValue {
      *     than the length of the byte array
      */
     public void copyTo(byte[] bytes) {
-
-        System.out.println("copyTo: " + this.bytes.toString());
-       // System.out.println("copyTo: " + this.bytes.get());
-       // System.out.println("copyTo: " + this.bytes.get());
-       // System.out.println("copyTo: " + this.bytes.get());
         this.bytes.reset();
-        System.out.println("copyTo: " + this.bytes.toString());
+
         this.bytes.get(bytes, 0, this.bytes.remaining() - 1);
-        System.out.println("array " + (char)bytes[0]);
-        System.out.println("array " + (char)bytes[1]);
-        System.out.println("array " + (char)bytes[2]);
     }
 
     /**
@@ -101,13 +92,10 @@ public class FIXValue {
      * @param value a value container
      */
     public void set(FIXValue value) {
-        System.out.println("set other " + value.bytes.toString());
-        System.out.println("set " + bytes.toString());
-        
         bytes.limit(value.bytes.limit());
         bytes.position(value.bytes.reset().position()).mark();
+
         bytes.put(value.bytes);
-        System.out.println("set other " + value.bytes.toString());
     }
 
     /**
@@ -132,8 +120,7 @@ public class FIXValue {
         bytes.put(b ? YES : NO);
         bytes.put(SOH);
         
-        bytes.flip();
-        bytes.mark();
+        bytes.flip().mark();
     }
 
     /**
@@ -158,8 +145,7 @@ public class FIXValue {
         bytes.put((byte)c);
         bytes.put(SOH);
 
-        bytes.flip();
-        bytes.mark();
+        bytes.flip().mark();
     }
 
     /**
@@ -169,7 +155,6 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not an integer
      */
     public long asInt() {
-        System.out.println("asInt " + bytes.toString());
         boolean negative = false;
 
         bytes.reset();
@@ -185,12 +170,9 @@ public class FIXValue {
 
         while (bytes.remaining() - 1 > 0) {
             byte b = bytes.get();
-            System.out.println("remaining = " + bytes.remaining());
 
-            if (b < '0' || b > '9') {
-                System.out.println("b = " + b);
+            if (b < '0' || b > '9') 
                 notInt();
-            }
 
             value = 10 * value + b - '0';
         }
@@ -204,10 +186,9 @@ public class FIXValue {
      * @param i an integer
      */
     public void setInt(long i) {
-        System.out.println("setInt " + bytes.toString());
         bytes.put(bytes.limit() - 1, SOH);
 
-        long j = Math.abs(i); //TODO: maybe another to do this faster
+        long j = Math.abs(i);
 
         int k = bytes.limit() - 2;
 
@@ -220,7 +201,6 @@ public class FIXValue {
         if (i < 0)
             bytes.put(k--, (byte)('-'));
 
-        System.out.println("position = " + k);
         bytes.position(k + 1).mark();
     }
 
@@ -243,13 +223,12 @@ public class FIXValue {
 
         for (int i = start; i < bytes.limit() - 1; i++) {
             byte b = bytes.get();
-            System.out.println("asFloat b = " + (char)b);
+
             if (b < '0' || b > '9') {
                 if (factor == 0.0 && b == '.') {
                     factor = 1.0;
                     continue;
                 }
-
                 notFloat();
             }
 
@@ -290,8 +269,8 @@ public class FIXValue {
 
         if (f < 0)
             bytes.put(j--, (byte)'-');
-        System.out.println("setFloat");
-        bytes.position(j + 1).mark();
+
+            bytes.position(j + 1).mark();
     }
 
     /**
@@ -300,9 +279,9 @@ public class FIXValue {
      * @return the value as a string
      */
     public String asString() {
-        System.out.println("asSting " + bytes.toString());
         bytes.reset();
         bytes.limit(bytes.limit() - 1);
+
         return StandardCharsets.US_ASCII.decode(bytes.slice()).toString();
     }
 
@@ -313,8 +292,8 @@ public class FIXValue {
      * @param s a string builder
      */
     public void asString(StringBuilder s) {
-        System.out.println("asSting " + bytes.toString());
         bytes.reset();
+
         for (int i = bytes.position(); i < bytes.limit() - 1; i++) 
             s.append((char)bytes.get());
     }
@@ -326,16 +305,11 @@ public class FIXValue {
      * @throws IndexOutOfBoundsException if the string is too long
      */
     public void setString(CharSequence s) {
-        System.out.println("setString:" + s.toString() + " bytes:" + bytes.toString());
-        
         for (int i = 0; i < s.length(); i++)
             bytes.put((byte)s.charAt(i));
 
         bytes.put(SOH);
-        bytes.flip();
-        bytes.mark();
-        System.out.println("setString:" + s.toString() + " bytes:" + bytes.toString());
-
+        bytes.flip().mark();
     }
 
     /**
@@ -361,13 +335,13 @@ public class FIXValue {
      * @param d a date
      */
     public void setDate(ReadableDateTime d) {
-        System.out.println("setDate " + bytes.toString());
         setDigits(d.getYear(), 0, 4);
         setDigits(d.getMonthOfYear(), 4, 2);
         setDigits(d.getDayOfMonth(), 6, 2);
+
         bytes.put(8, SOH);
+
         bytes.position(9).flip().mark();
-        System.out.println("setDate " + bytes.toString());
     }
 
     /**
@@ -377,7 +351,6 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a time only
      */
     public void asTimeOnly(MutableDateTime t) {
-        System.out.println("asTimeOnly " + bytes.toString());
         if (bytes.limit() != 8 && bytes.limit() != 12)
             notTimeOnly();
 
@@ -481,7 +454,6 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not an integer
      */
     public long asCheckSum() {
-        System.out.println("asCheckSum");
         return asInt();
     }
 
@@ -491,7 +463,6 @@ public class FIXValue {
      * @param c a checksum
      */
     public void setCheckSum(long c) {
-        System.out.println("setCheckSum");
         setDigits(c & 0xff, 0, 3);
         bytes.put(3, SOH);
 
@@ -508,23 +479,20 @@ public class FIXValue {
      *   false
      */
     public boolean get(ByteBuffer buffer) throws FIXValueOverflowException {
-        System.out.println("get " + bytes.toString());
-        System.out.println("get buffer:" + buffer.toString());
         bytes.clear();
         int length = 0;
+
         while (buffer.hasRemaining()) {
             byte b = buffer.get();
             bytes.put(b);
-            System.out.println("b = " + (char)b);
             if (b == SOH) {
                 bytes.limit(bytes.position()).position(0).mark();
-                System.out.println("finished: " + bytes.toString());
                 return true;
             }
             if (++length == bytes.capacity())
                 tooLongValue();
         }
-        System.out.println("error in get");
+
         bytes.limit(bytes.position()).position(0).mark();
         return false;
     }
@@ -538,11 +506,10 @@ public class FIXValue {
      * @throws ReadOnlyBufferException if the buffer is read-only
      */
     public void put(ByteBuffer buffer) {
-        System.out.println("put");
         ByteBuffer r = bytes.reset().slice();
-        System.out.println("r is " + r.toString());
+
         buffer.put(r);
-        System.out.println(buffer.toString());
+
         bytes.rewind();
     }
 
@@ -563,7 +530,6 @@ public class FIXValue {
 
     private void setDigits(long l, int offset, int digits) {
         for (int i = offset + digits - 1; i >= offset; i--) {
-            System.out.println("digit = " + i + " " + (char)('0' + l % 10));
             bytes.put(i, (byte)('0' + l % 10));
             l /= 10;
         }
