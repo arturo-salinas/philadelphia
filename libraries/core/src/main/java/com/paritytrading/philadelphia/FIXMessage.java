@@ -211,7 +211,6 @@ public class FIXMessage {
     public void put(ByteBuffer buffer) {
         for (int i = 0; i < count; i++) {
             FIXTags.put(buffer, tags[i]);
-
             values[i].put(buffer);
         }
     }

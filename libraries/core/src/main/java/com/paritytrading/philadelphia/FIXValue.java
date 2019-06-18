@@ -77,6 +77,8 @@ public class FIXValue {
         this.bytes.reset();
 
         this.bytes.get(bytes, 0, this.bytes.remaining() - 1);
+
+        this.bytes.reset();
     }
 
     /**
@@ -133,7 +135,7 @@ public class FIXValue {
         if (bytes.limit() != 2)
             notChar();
 
-        return (char)bytes.get();
+        return (char)bytes.get(0);
     }
 
     /**
@@ -177,6 +179,8 @@ public class FIXValue {
             value = 10 * value + b - '0';
         }
 
+        bytes.reset();
+        
         return negative ? -value : +value;
     }
 
@@ -235,6 +239,8 @@ public class FIXValue {
             value   = 10 * value + b - '0';
             factor *= 10;
         }
+        
+        bytes.reset();
 
         return sign * (factor > 0.0 ? value / factor : value);
     }
@@ -270,7 +276,7 @@ public class FIXValue {
         if (f < 0)
             bytes.put(j--, (byte)'-');
 
-            bytes.position(j + 1).mark();
+        bytes.position(j + 1).mark();
     }
 
     /**
@@ -296,6 +302,8 @@ public class FIXValue {
 
         for (int i = bytes.position(); i < bytes.limit() - 1; i++) 
             s.append((char)bytes.get());
+        
+        bytes.reset();
     }
 
     /**
@@ -319,6 +327,7 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a date
      */
     public void asDate(MutableDateTime d) {
+        bytes.reset();
         if (bytes.limit() != 8)
             notDate();
 
@@ -362,6 +371,8 @@ public class FIXValue {
         if (bytes.limit() == 12)
             bytes.position(bytes.position() + 1);
         t.setMillisOfSecond(bytes.limit() == 12 ? getDigits(3) : 0);
+        
+        bytes.reset();
     }
 
     /**
@@ -414,6 +425,8 @@ public class FIXValue {
         }
         t.setDateTime(year, monthOfYear, dayOfMonth, hourOfDay, minuteOfHour,
                 secondOfMinute, millisOfSecond);
+
+        bytes.reset();
     }
 
     /**
@@ -510,7 +523,6 @@ public class FIXValue {
 
         buffer.put(r);
 
-        bytes.rewind();
     }
 
     private int getDigits(int digits) {
