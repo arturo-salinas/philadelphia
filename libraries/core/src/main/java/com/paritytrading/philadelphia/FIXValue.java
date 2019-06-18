@@ -98,6 +98,7 @@ public class FIXValue {
         bytes.position(value.bytes.reset().position()).mark();
 
         bytes.put(value.bytes);
+        bytes.reset();
     }
 
     /**
@@ -221,13 +222,11 @@ public class FIXValue {
         bytes.reset();
 
         long sign  = bytes.get() == '-' ? -1 : +1;
-        int  start = sign < 0 ?  1 : 0;
         if (sign > 0) 
             bytes.reset();
 
-        for (int i = start; i < bytes.limit() - 1; i++) {
+        while (bytes.remaining() - 1 > 0) {
             byte b = bytes.get();
-
             if (b < '0' || b > '9') {
                 if (factor == 0.0 && b == '.') {
                     factor = 1.0;
@@ -327,14 +326,13 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a date
      */
     public void asDate(MutableDateTime d) {
-        bytes.reset();
-        if (bytes.limit() != 8)
+        if (bytes.limit() != 9)
             notDate();
 
         int year        = getDigits(4);
         int monthOfYear = getDigits(2);
         int dayOfMonth  = getDigits(2);
-
+        bytes.reset();
         d.setDateTime(year, monthOfYear, dayOfMonth, 0, 0, 0, 0);
     }
 
@@ -360,7 +358,7 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a time only
      */
     public void asTimeOnly(MutableDateTime t) {
-        if (bytes.limit() != 8 && bytes.limit() != 12)
+        if (bytes.limit() != 9 && bytes.limit() != 13)
             notTimeOnly();
 
         t.setHourOfDay(getDigits(2));
@@ -368,9 +366,9 @@ public class FIXValue {
         t.setMinuteOfHour(getDigits(2));
         bytes.position(bytes.position() + 1);
         t.setSecondOfMinute(getDigits(2));
-        if (bytes.limit() == 12)
+        if (bytes.limit() == 13)
             bytes.position(bytes.position() + 1);
-        t.setMillisOfSecond(bytes.limit() == 12 ? getDigits(3) : 0);
+        t.setMillisOfSecond(bytes.limit() == 13 ? getDigits(3) : 0);
         
         bytes.reset();
     }
@@ -406,7 +404,7 @@ public class FIXValue {
      * @throws FIXValueFormatException if the value is not a timestamp
      */
     public void asTimestamp(MutableDateTime t) {
-        if (bytes.limit() != 17 && bytes.limit() != 21)
+        if (bytes.limit() != 18 && bytes.limit() != 22)
             notTimestamp();
 
         int year           = getDigits(4);
@@ -419,7 +417,7 @@ public class FIXValue {
         bytes.position(bytes.position() + 1);
         int secondOfMinute = getDigits(2);
         int millisOfSecond = 0;
-        if (bytes.limit() == 21) {
+        if (bytes.limit() == 22) {
             bytes.position(bytes.position() + 1);
             millisOfSecond = getDigits(3);
         }
@@ -506,7 +504,7 @@ public class FIXValue {
                 tooLongValue();
         }
 
-        bytes.limit(bytes.position()).position(0).mark();
+        bytes.limit(bytes.position() + 1).position(0).mark();
         return false;
     }
 
@@ -522,7 +520,6 @@ public class FIXValue {
         ByteBuffer r = bytes.reset().slice();
 
         buffer.put(r);
-
     }
 
     private int getDigits(int digits) {
