@@ -122,8 +122,8 @@ public class FIXValue {
      * @param b a boolean
      */
     public void setBoolean(boolean b) {
-        bytes.put(b ? YES : NO);
-        bytes.put(SOH);
+        bytes.put(0, b ? YES : NO);
+        bytes.put(1, SOH);
         
         offset = 0;
         length = 1;
