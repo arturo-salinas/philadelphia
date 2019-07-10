@@ -31,6 +31,7 @@ public class FIXValue {
 
     private final byte[] bytes;
 
+    private int tag;
     private int offset;
     private int length;
 
@@ -46,6 +47,16 @@ public class FIXValue {
 
         offset = 0;
         length = 0;
+        tag = 0;
+    }
+
+    public FIXValue setTag(int tag) {
+        this.tag = tag;
+        return this;
+    }
+
+    public int getTag() {
+        return tag;
     }
 
     /**

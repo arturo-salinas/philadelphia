@@ -27,8 +27,6 @@ import java.util.stream.Stream;
  */
 public class FIXMessage {
 
-    private final int[] tags;
-
     private final FIXValue[] values;
 
     private int count;
@@ -40,7 +38,6 @@ public class FIXMessage {
      * @param fieldCapacity the field capacity
      */
     public FIXMessage(int maxFieldCount, int fieldCapacity) {
-        tags = new int[maxFieldCount];
 
         values = new FIXValue[maxFieldCount];
 
@@ -79,7 +76,7 @@ public class FIXMessage {
      *   number of fields
      */
     public int tagAt(int index) {
-        return tags[index];
+        return values[index].getTag();
     }
 
     /**
@@ -122,7 +119,7 @@ public class FIXMessage {
      */
     public FIXValue valueOf(int tag) {
         for (int i = 0; i < count; i++) {
-            if (tags[i] == tag)
+            if (values[i].getTag() == tag)
                 return values[i];
         }
 
@@ -138,7 +135,7 @@ public class FIXMessage {
      */
     public int indexOf(int tag) {
         for (int i = 0; i < count; i++) {
-            if (tags[i] == tag)
+            if (values[i].getTag() == tag)
                 return i;
         }
 
@@ -154,9 +151,7 @@ public class FIXMessage {
      *   exceeded
      */
     public FIXValue addField(int tag) {
-        tags[count] = tag;
-
-        return values[count++];
+        return values[count++].setTag(tag);
     }
 
     /**
@@ -182,14 +177,14 @@ public class FIXMessage {
         reset();
 
         while (buffer.hasRemaining()) {
-            if (count == tags.length)
+            if (count == values.length)
                 tooManyFields();
 
             int tag = FIXTags.get(buffer);
             if (tag == 0)
                 return false;
 
-            tags[count] = tag;
+            values[count].setTag(tag);
 
             if (!values[count].get(buffer))
                 return false;
@@ -210,7 +205,7 @@ public class FIXMessage {
      */
     public void put(ByteBuffer buffer) {
         for (int i = 0; i < count; i++) {
-            FIXTags.put(buffer, tags[i]);
+            FIXTags.put(buffer, values[i].getTag());
 
             values[i].put(buffer);
         }
@@ -270,7 +265,7 @@ public class FIXMessage {
      */
     public void toString(StringBuilder builder) {
         for (int i = 0; i < count; i++) {
-            builder.append(tags[i]);
+            builder.append(values[i].getTag());
             builder.append('=');
             values[i].asString(builder);
             builder.append('|');
