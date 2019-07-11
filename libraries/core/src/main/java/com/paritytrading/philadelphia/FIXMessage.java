@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 public class FIXMessage {
 
     private final FIXValue[] values;
-
+    private final ByteBuffer outgoingBuf;
     private int count;
 
     /**
@@ -43,6 +43,8 @@ public class FIXMessage {
 
         for (int i = 0; i < values.length; i++)
             values[i] = new FIXValue(fieldCapacity);
+
+        outgoingBuf = ByteBuffer.allocateDirect(maxFieldCount * fieldCapacity);
 
         count = 0;
     }
@@ -151,6 +153,7 @@ public class FIXMessage {
      *   exceeded
      */
     public FIXValue addField(int tag) {
+        FIXTags.put(outgoingBuf, tag);
         return values[count++].setTag(tag);
     }
 
@@ -209,6 +212,7 @@ public class FIXMessage {
 
             values[i].put(buffer);
         }
+        outgoingBuf.rewind();
     }
 
     /**
