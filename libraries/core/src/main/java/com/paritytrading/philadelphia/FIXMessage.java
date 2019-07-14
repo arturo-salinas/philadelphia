@@ -16,11 +16,15 @@
 package com.paritytrading.philadelphia;
 
 import static com.paritytrading.philadelphia.FIXTags.*;
+import static com.paritytrading.philadelphia.FIX.*;
 
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
+import org.joda.time.MutableDateTime;
+import org.joda.time.ReadableDateTime;
 
 /**
  * A message container.
@@ -153,8 +157,77 @@ public class FIXMessage {
      *   exceeded
      */
     public FIXValue addField(int tag) {
-        FIXTags.put(outgoingBuf, tag);
         return values[count++].setTag(tag);
+    }
+
+    public void addBoolean(int tag, boolean x) {
+        FIXTags.put(outgoingBuf, tag);
+        FIXValue.setBoolean(outgoingBuf, x);
+    }
+
+    public void addChar(int tag, char x) {
+        FIXTags.put(outgoingBuf, tag);
+        FIXValue.setChar(outgoingBuf, x);
+    }
+
+    public void addInt(int tag, long x) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setInt(buf, x);
+        buf.compact();
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());
+    }
+
+    public void addFloat(int tag, double x, int decimals) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setFloat(buf, x, decimals);
+        buf.compact();
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());
+    }
+
+    public void addString(int tag, CharSequence x) {
+        FIXTags.put(outgoingBuf, tag);
+        FIXValue.setString(outgoingBuf, x);
+    }
+
+    public void addDate(int tag, ReadableDateTime x) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setDate(buf, x);
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());       
+    }
+
+    public void addTimeOnly(int tag, ReadableDateTime x, boolean millis) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setTimeOnly(buf, x, millis);
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());  
+    }
+
+    public void addTimestamp(int tag, ReadableDateTime x, boolean millis) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setTimestamp(buf, x, millis);
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());  
+    }
+
+    public void addCheckSum(int tag, long x) {
+        FIXTags.put(outgoingBuf, tag);
+        ByteBuffer buf = outgoingBuf.slice();
+        FIXValue.setCheckSum(buf, x);
+        int pos = outgoingBuf.position();
+        outgoingBuf.position(pos + buf.position());  
+    }
+
+    public void addValue(int tag, FIXValue value) {
+        FIXTags.put(outgoingBuf, tag);
+        value.put(outgoingBuf);
     }
 
     /**
@@ -162,6 +235,7 @@ public class FIXMessage {
      */
     public void reset() {
         count = 0;
+        outgoingBuf.clear();
     }
 
     /**
@@ -207,12 +281,16 @@ public class FIXMessage {
      * @throws ReadOnlyBufferException if the buffer is read-only
      */
     public void put(ByteBuffer buffer) {
-        for (int i = 0; i < count; i++) {
-            FIXTags.put(buffer, values[i].getTag());
-
-            values[i].put(buffer);
+        if (count == 0) {
+            outgoingBuf.flip();
+            buffer.put(outgoingBuf);
+            outgoingBuf.rewind();
+        } else {
+            for (int i = 0; i < count; i++) {
+                FIXTags.put(buffer, values[i].getTag());
+                values[i].put(buffer);
+            }
         }
-        outgoingBuf.rewind();
     }
 
     /**
@@ -273,6 +351,16 @@ public class FIXMessage {
             builder.append('=');
             values[i].asString(builder);
             builder.append('|');
+        }
+        if (count == 0 && outgoingBuf.position() != 0) {
+            outgoingBuf.flip();
+            while (outgoingBuf.hasRemaining()) {
+                byte b = outgoingBuf.get();
+                if (b == SOH)
+                    builder.append("|");
+                else
+                    builder.append((char)b);
+            }
         }
     }
 
